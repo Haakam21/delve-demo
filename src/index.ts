@@ -2,24 +2,27 @@ import 'dotenv/config'
 
 import express, { Request, Response } from 'express'
 import { AgentMail, AgentMailClient } from 'agentmail'
+import OpenAI from 'openai'
 
 const INBOX_USERNAME = 'soc2test'
 
 const inboxId = `${INBOX_USERNAME}@agentmail.to`
 
-const client = new AgentMailClient()
+const agentmail = new AgentMailClient()
 
-client.inboxes.create({
+agentmail.inboxes.create({
     username: INBOX_USERNAME,
     clientId: 'soc2test-inbox',
 })
 
-client.webhooks.create({
+agentmail.webhooks.create({
     url: 'https://delve-demo.onrender.com/receive',
     inboxIds: [inboxId],
     eventTypes: ['message.received'],
     clientId: 'soc2test-webhook',
 })
+
+const openai = new OpenAI()
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -28,7 +31,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 app.get('/', async (req: Request, res: Response) => {
-    const threads = await client.inboxes.threads.list(inboxId)
+    const threads = await agentmail.inboxes.threads.list(inboxId)
 
     const threadHtml = threads.threads?.map((thread) => {
         const attachmentHtml = thread.attachments?.map((attachment) => {
@@ -46,7 +49,8 @@ app.get('/', async (req: Request, res: Response) => {
 
     const formHtml = `<form action="/send" method="post">
       <h3>Trigger Agent</h3>
-      <input type="email" name="email" placeholder="Email" />
+      <input type="email" name="to" placeholder="To" />
+      <input type="email" name="cc" placeholder="Cc" />
       <button type="submit">Send</button>
     </form>`
 
@@ -61,15 +65,18 @@ app.get('/', async (req: Request, res: Response) => {
 
 app.get('/threads/:threadId/attachments/:attachmentId', async (req: Request, res: Response) => {
     const { threadId, attachmentId } = req.params
-    const attachment = await client.inboxes.threads.getAttachment(inboxId, threadId, attachmentId)
+
+    const attachment = await agentmail.inboxes.threads.getAttachment(inboxId, threadId, attachmentId)
+
     attachment.pipe(res)
 })
 
 app.post('/send', async (req: Request, res: Response) => {
-    const { email } = req.body
+    const { to, cc } = req.body
 
-    await client.inboxes.messages.send(inboxId, {
-        to: email,
+    await agentmail.inboxes.messages.send(inboxId, {
+        to,
+        cc,
         subject: 'SOC 2 Report Request',
         text: 'Hello,\n\nWe would like to request a SOC 2 report. Please let us know the next steps.\n\nBest,\nAgentMail',
     })
@@ -79,7 +86,34 @@ app.post('/send', async (req: Request, res: Response) => {
 
 app.post('/receive', async (req: Request, res: Response) => {
     const message = req.body.message as AgentMail.Message
-    console.log(message)
+
+    const thread = await agentmail.inboxes.threads.get(inboxId, message.threadId)
+
+    const response = await openai.responses.create({
+        model: 'gpt-4o',
+        instructions: `
+        You are an email assistant. Your email address is ${inboxId}.
+        Your task is to get a SOC 2 report from a company on behalf of the user.
+
+        You have already sent an email to the company requestion the SOC 2 report.
+        You will be given the email thread when the company has responded.
+
+        If the company has provided the SOC 2 report, thank them for their response.
+        If the company has not provided the SOC 2 report, inform them you will loop in the team for next steps.
+
+        Respond in plain text as if you are writing an email.
+        In the email signature, refer to yourself as "AgentMail".
+
+        Do not specify the email subject, only the email body.
+        Do not include any other text in your response.
+        `,
+        input: JSON.stringify(thread),
+    })
+
+    await agentmail.inboxes.messages.reply(inboxId, message.messageId, {
+        text: response.output_text,
+    })
+
     res.send('OK')
 })
 
