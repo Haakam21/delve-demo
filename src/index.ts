@@ -4,7 +4,7 @@ import { AgentMailClient } from 'agentmail'
 import OpenAI from 'openai'
 import express, { Request, Response } from 'express'
 
-const INBOX_USERNAME = 'soc2test'
+const INBOX_USERNAME = 'soc2reports'
 
 const inboxId = `${INBOX_USERNAME}@agentmail.to`
 
@@ -12,14 +12,14 @@ const agentmail = new AgentMailClient()
 
 agentmail.inboxes.create({
     username: INBOX_USERNAME,
-    clientId: 'soc2test-inbox',
+    clientId: 'soc2reports-inbox',
 })
 
 agentmail.webhooks.create({
     url: 'https://delve-demo.onrender.com/receive',
     inboxIds: [inboxId],
     eventTypes: ['message.received'],
-    clientId: 'soc2test-webhook',
+    clientId: 'soc2reports-webhook',
 })
 
 const openai = new OpenAI()
@@ -56,6 +56,7 @@ app.get('/', async (req: Request, res: Response) => {
 
     const html = `<div>
         <h2>${inboxId}</h2>
+        <p>Enter the email address you want to request a SOC 2 report from below.</p>
         ${formHtml}<br>
         ${threadHtml?.join('<br>')}
     </div>`
