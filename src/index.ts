@@ -39,25 +39,25 @@ app.get('/', async (req: Request, res: Response) => {
         })
 
         return `<div>
-          <b>Timestamp:</b> ${thread.timestamp.toLocaleString()}<br>
-          <b>Subject:</b> ${thread.subject}<br>
-          <b>Preview:</b> ${thread.preview}...<br>
-          <b>Message Count:</b> ${thread.messageCount}<br>
-          <b>Attachments:</b> ${attachmentHtml ? attachmentHtml.join('\t') : 'None'}<br>
+            <b>Timestamp:</b> ${thread.timestamp.toLocaleString()}<br>
+            <b>Subject:</b> ${thread.subject}<br>
+            <b>Preview:</b> ${thread.preview}...<br>
+            <b>Message Count:</b> ${thread.messageCount}<br>
+            <b>Attachments:</b> ${attachmentHtml ? attachmentHtml.join('\t') : 'None'}<br>
         </div>`
     })
 
     const formHtml = `<form action="/send" method="post">
-      <h3>Trigger Agent</h3>
-      <input type="email" name="to" placeholder="To" />
-      <input type="email" name="cc" placeholder="Cc" />
-      <button type="submit">Send</button>
+        <h3>Trigger Agent</h3>
+        <input type="email" name="to" placeholder="To" required />
+        <input type="email" name="cc" placeholder="Cc" />
+        <button type="submit">Send</button>
     </form>`
 
     const html = `<div>
-      <h2>${inboxId}</h2>
-      ${formHtml}<br>
-      ${threadHtml?.join('<br>')}
+        <h2>${inboxId}</h2>
+        ${formHtml}<br>
+        ${threadHtml?.join('<br>')}
     </div>`
 
     res.send(html)
@@ -76,7 +76,7 @@ app.post('/send', async (req: Request, res: Response) => {
 
     await agentmail.inboxes.messages.send(inboxId, {
         to,
-        cc,
+        cc: cc ? cc : undefined,
         subject: 'SOC 2 Report Request',
         text: 'Hello,\n\nWe would like to request a SOC 2 report. Please let us know the next steps.\n\nBest,\nAgentMail',
     })
@@ -99,7 +99,7 @@ app.post('/receive', async (req: Request, res: Response) => {
         You will be given the email thread when the company has responded.
 
         If the company has provided the SOC 2 report, thank them for their response.
-        If the company has not provided the SOC 2 report, inform them you will loop in the team for next steps.
+        If the company has not provided the SOC 2 report, inform them you will loop in the team.
 
         Respond in plain text as if you are writing an email.
         In the email signature, refer to yourself as "AgentMail".
