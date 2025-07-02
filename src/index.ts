@@ -1,8 +1,8 @@
 import 'dotenv/config'
 
-import express, { Request, Response } from 'express'
 import { AgentMail, AgentMailClient } from 'agentmail'
 import OpenAI from 'openai'
+import express, { Request, Response } from 'express'
 
 const INBOX_USERNAME = 'soc2test'
 
@@ -87,7 +87,11 @@ app.post('/send', async (req: Request, res: Response) => {
 app.post('/receive', async (req: Request, res: Response) => {
     const message = req.body.message as AgentMail.Message
 
+    console.log(message)
+
     const thread = await agentmail.inboxes.threads.get(inboxId, message.threadId)
+
+    console.log(thread)
 
     const response = await openai.responses.create({
         model: 'gpt-4o',
@@ -109,6 +113,8 @@ app.post('/receive', async (req: Request, res: Response) => {
         `,
         input: JSON.stringify(thread),
     })
+
+    console.log(response.output_text)
 
     await agentmail.inboxes.messages.reply(inboxId, message.messageId, {
         text: response.output_text,
