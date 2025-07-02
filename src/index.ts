@@ -45,6 +45,7 @@ app.get('/', async (req: Request, res: Response) => {
             <b>Preview:</b> ${thread.preview}...<br>
             <b>Message Count:</b> ${thread.messageCount}<br>
             <b>Attachments:</b> ${attachmentHtml ? attachmentHtml.join(', ') : 'None'}<br>
+            <a href="threads/${thread.threadId}" target="_blank">View full thread</a><br>
         </div>`
     })
 
@@ -60,6 +61,33 @@ app.get('/', async (req: Request, res: Response) => {
         <p>Enter the email address you want to request a SOC 2 report from below.</p>
         ${formHtml}<br>
         ${threadHtml?.join('<br>')}
+    </div>`
+
+    res.send(html)
+})
+
+app.get('/threads/:threadId', async (req: Request, res: Response) => {
+    const { threadId } = req.params
+
+    const thread = await agentmail.inboxes.threads.get(inboxId, threadId)
+
+    const messageHtml = thread.messages?.map((message) => {
+        const attachmentHtml = message.attachments?.map((attachment) => {
+            return `<a href="threads/${thread.threadId}/attachments/${attachment.attachmentId}" target="_blank">${attachment.filename}</a>`
+        })
+
+        return `<div>
+            <b>Timestamp:</b> ${message.timestamp.toLocaleString()}<br>
+            <b>From:</b> ${message.from}<br>
+            <b>To:</b> ${message.to}<br>
+            <b>Body:</b> ${message.html || message.text}<br>
+            <b>Attachments:</b> ${attachmentHtml ? attachmentHtml.join(', ') : 'None'}<br>
+        </div>`
+    })
+
+    const html = `<div>
+        <h3>${thread.subject}</h3>
+        ${messageHtml?.join('<br>')}
     </div>`
 
     res.send(html)
