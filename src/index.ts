@@ -1,9 +1,9 @@
 import 'dotenv/config'
 
 import express, { Request, Response } from 'express'
-import { AgentMailClient } from 'agentmail'
+import { AgentMail, AgentMailClient } from 'agentmail'
 
-const INBOX_USERNAME = process.env.INBOX_USERNAME
+const INBOX_USERNAME = 'soc2test'
 
 const inboxId = `${INBOX_USERNAME}@agentmail.to`
 
@@ -12,6 +12,13 @@ const client = new AgentMailClient()
 client.inboxes.create({
     username: INBOX_USERNAME,
     clientId: 'soc2test-inbox',
+})
+
+client.webhooks.create({
+    url: 'https://delve-demo.onrender.com/receive',
+    inboxIds: [inboxId],
+    eventTypes: ['message.received'],
+    clientId: 'soc2test-webhook',
 })
 
 const app = express()
@@ -68,6 +75,12 @@ app.post('/send', async (req: Request, res: Response) => {
     })
 
     res.redirect('/')
+})
+
+app.post('/receive', async (req: Request, res: Response) => {
+    const message = req.body.message as AgentMail.Message
+    console.log(message)
+    res.send('OK')
 })
 
 app.listen(port, () => {
