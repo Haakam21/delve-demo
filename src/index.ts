@@ -40,10 +40,11 @@ app.get('/', async (req: Request, res: Response) => {
 
         return `<div>
             <b>Timestamp:</b> ${thread.timestamp.toLocaleString()}<br>
+            <b>Recipients:</b> ${thread.recipients.join(', ')}<br>
             <b>Subject:</b> ${thread.subject}<br>
             <b>Preview:</b> ${thread.preview}...<br>
             <b>Message Count:</b> ${thread.messageCount}<br>
-            <b>Attachments:</b> ${attachmentHtml ? attachmentHtml.join('\t') : 'None'}<br>
+            <b>Attachments:</b> ${attachmentHtml ? attachmentHtml.join(', ') : 'None'}<br>
         </div>`
     })
 
