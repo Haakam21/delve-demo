@@ -1,6 +1,6 @@
 import 'dotenv/config'
 
-import { AgentMail, AgentMailClient } from 'agentmail'
+import { AgentMailClient } from 'agentmail'
 import OpenAI from 'openai'
 import express, { Request, Response } from 'express'
 
@@ -85,13 +85,9 @@ app.post('/send', async (req: Request, res: Response) => {
 })
 
 app.post('/receive', async (req: Request, res: Response) => {
-    const message = req.body.message as AgentMail.Message
+    const { message } = req.body
 
-    console.log(message)
-
-    const thread = await agentmail.inboxes.threads.get(inboxId, message.threadId)
-
-    console.log(thread)
+    const thread = await agentmail.inboxes.threads.get(inboxId, message.thread_id)
 
     const response = await openai.responses.create({
         model: 'gpt-4o',
@@ -114,9 +110,7 @@ app.post('/receive', async (req: Request, res: Response) => {
         input: JSON.stringify(thread),
     })
 
-    console.log(response.output_text)
-
-    await agentmail.inboxes.messages.reply(inboxId, message.messageId, {
+    await agentmail.inboxes.messages.reply(inboxId, message.message_id, {
         text: response.output_text,
     })
 
