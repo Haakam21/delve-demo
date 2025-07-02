@@ -11,7 +11,6 @@ const client = new AgentMailClient()
 
 client.inboxes.create({
     username: INBOX_USERNAME,
-    displayName: 'SOC2 Reports',
     clientId: 'soc2test-inbox',
 })
 
@@ -30,7 +29,7 @@ app.get('/', async (req: Request, res: Response) => {
         })
 
         return `<div>
-          <b>Timestamp:</b> ${thread.timestamp}<br>
+          <b>Timestamp:</b> ${thread.timestamp.toLocaleString()}<br>
           <b>Subject:</b> ${thread.subject}<br>
           <b>Preview:</b> ${thread.preview}...<br>
           <b>Message Count:</b> ${thread.messageCount}<br>
@@ -38,8 +37,15 @@ app.get('/', async (req: Request, res: Response) => {
         </div>`
     })
 
+    const formHtml = `<form action="/send" method="post">
+      <h3>Trigger Agent</h3>
+      <input type="email" name="email" placeholder="Email" />
+      <button type="submit">Send</button>
+    </form>`
+
     const html = `<div>
-      <h3>${inboxId}</h3>
+      <h2>${inboxId}</h2>
+      ${formHtml}<br>
       ${threadHtml?.join('<br>')}
     </div>`
 
@@ -50,6 +56,18 @@ app.get('/threads/:threadId/attachments/:attachmentId', async (req: Request, res
     const { threadId, attachmentId } = req.params
     const attachment = await client.inboxes.threads.getAttachment(inboxId, threadId, attachmentId)
     attachment.pipe(res)
+})
+
+app.post('/send', async (req: Request, res: Response) => {
+    const { email } = req.body
+
+    await client.inboxes.messages.send(inboxId, {
+        to: email,
+        subject: 'SOC 2 Report Request',
+        text: 'Hello,\n\nWe would like to request a SOC 2 report. Please let us know the next steps.\n\nBest,\nAgentMail',
+    })
+
+    res.redirect('/')
 })
 
 app.listen(port, () => {
